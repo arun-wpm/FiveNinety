@@ -1,5 +1,18 @@
 package com.example.pennybrant.cameratest;
-
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import java.io.File;
 import android.content.Context;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -45,6 +58,10 @@ int violin;
 Context context;
 File dir;
 //    MediaPlayer[] mps = new MediaPlayer[spectrumLength];
+
+float[] Spectrum = new float[2048];
+int[] p1, p2;
+int[][] diff;
 
 public class camera extends AppCompatActivity {
     private static final String TAG = "CapturePicture";
@@ -102,6 +119,7 @@ public class camera extends AppCompatActivity {
                 Log.wtf("FiveNinety", "Why did things go wrong wtf");
             }
             addToGallery();
+            analyzeImage();
             playSound();
         }
     }
@@ -260,4 +278,42 @@ public class camera extends AppCompatActivity {
             sp.play(violin, spectrum[i], spectrum[i], 100, -1, freq);
         }
     }
+  
+   protected void analyzeImage() {
+        String root = Environment.getExternalStorageDirectory().toString() + "/ripple/";
+        Bitmap b1, b2;
+        int W, H;
+        int t1, t2;
+        Log.wtf("FiveNinety", root);
+        b1 = BitmapFactory.decodeFile(root + "01.jpg");
+        b2 = BitmapFactory.decodeFile(root + "02.jpg");
+        W = b1.getWidth();
+        H = b1.getHeight();
+        p1 = new int[W*H];
+        b1.getPixels(p1, 0, W, 0, 0, W, H);
+
+        p2 = new int[W*H];
+        b2.getPixels(p2, 0, W, 0, 0, W, H);
+
+        diff = new int[W][H];
+        for (int j = 0; j < 2048; j++)
+            Spectrum[j] = 0;
+        for (int i = 0; i < W; i++)
+        {
+            for (int j = 0; j < H; j++) {
+                t1 = p1[j*W + i];
+                t2 = p2[j*W + i];
+//                diff[i][j] = t1^t2;
+                diff[i][j] = Math.abs(Color.red(t1) - Color.red(t2)) +
+                        Math.abs(Color.green(t1) - Color.green(t2)) +
+                        Math.abs(Color.blue(t1) - Color.blue(t2));
+                Spectrum[i*2048/W] += diff[i][j];
+//                Log.wtf("FiveNinety", "" + i + j);
+            }
+        }
+        for (int j = 0; j < 2048; j++) {
+            Spectrum[j] /= 255 * 3 * H * W / 2048;
+            Log.wtf("FiveNinety", "analyzeImage: " + Spectrum[j]);
+        }
+   }
 }
