@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
-    protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.READ_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -76,39 +76,29 @@ public class MainActivity extends AppCompatActivity {
             Log.wtf("FiveNinety", "Why");
         }
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        int id = 1;
-        while(true){
-            first++;
-            analyzeImage();
-            playSound();
-        }
-    }
-  
-    public void playSound() {
         sp = new SoundPool(7, AudioManager.STREAM_MUSIC, 0);
-        violin = sp.load(this, R.raw.piano_a2, 0);
+        violin = sp.load(this, R.raw.violin_a2, 0);
         piano = sp.load(this, R.raw.piano_a2, 0);
         sp.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
             @Override
             public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
 //                oldSounds(spectrum, 0.5f, 2.0f);
                 violinStream = sp.play(violin, 1.0f, 1.0f, 100, -1, 1.0f);
+//                while (true) {
+////                    sounds(sampleDiff);
+//                    ambientSounds(spectrum, 3000);
+////                    try {
+////                        Thread.sleep(3000);
+////                        Log.wtf("POG", "champ");
+////                    } catch (InterruptedException w) {
+////                        Log.wtf("POG", w);
+////                    }
+//                }
                 while (true) {
-                    float random = rng.nextFloat();
-                    for (int i = 0; i < height; i++) {
-                        for (int j = 0; j < height; j++) {
-                            sampleDiff[i][j] = random;
-                        }
-                    }
-//                    sounds(sampleDiff);
-                    ambientSounds(sampleDiff, 3000);
-//                    try {
-//                        Thread.sleep(3000);
-//                        Log.wtf("POG", "champ");
-//                    } catch (InterruptedException w) {
-//                        Log.wtf("POG", w);
-//                    }
+                    first++;
+                    analyzeImage();
+//                    sounds(spectrum);
+                    ambientSounds(spectrum, 50);
                 }
             }
         });
@@ -124,10 +114,12 @@ public class MainActivity extends AppCompatActivity {
   
     protected void analyzeImage() {
         String root = Environment.getExternalStorageDirectory().toString() + "/Android/data/edu.exeter.fiveninety/files";
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 5;
         Bitmap b1, b2;
         int W, H;
         int t1, t2;
-        int h = 23, m = 0, s = 0;
+        int h = 10, m = 0, s = 0;
         Log.wtf("FiveNinety", root);
         String pattern;
         File test;
@@ -143,12 +135,12 @@ public class MainActivity extends AppCompatActivity {
                 m += 60;
                 h--;
             }
-            pattern = "/2019-03-01_" + h + "_" + m + "_" + s + ".jpg";
+            pattern = "/2019-03-02_" + String.format("%02d", h) + "_" + String.format("%02d", m) + "_" + String.format("%02d", s) + ".jpg";
             test = new File(root + pattern);
             if (test.exists())
                 break;
         }
-        b1 = BitmapFactory.decodeFile(root + pattern);
+        b1 = BitmapFactory.decodeFile(root + pattern, options);
         while (true)
         {
             s--;
@@ -161,12 +153,12 @@ public class MainActivity extends AppCompatActivity {
                 m += 60;
                 h--;
             }
-            pattern = "/2019-03-01_" + h + "_" + m + "_" + s + ".jpg";
+            pattern = "/2019-03-02_" + String.format("%02d", h) + "_" + String.format("%02d", m) + "_" + String.format("%02d", s) + ".jpg";
             test = new File(root + pattern);
             if (test.exists())
                 break;
         }
-        b2 = BitmapFactory.decodeFile(root + pattern);
+        b2 = BitmapFactory.decodeFile(root + pattern, options);
         W = b1.getWidth();
         H = b1.getHeight();
         if (first == 1)
@@ -185,13 +177,15 @@ public class MainActivity extends AppCompatActivity {
             for (int j = 0; j < H; j += 5) {
                 t1 = p1[j*W + i];
                 t2 = p2[j*W + i];
-                spectrum[i*spectrumLength/W][i*spectrumLength/H] += Math.abs(Color.red(t1) - Color.red(t2)) +
+                spectrum[i*spectrumLength/W][j*spectrumLength/H] += Math.abs(Color.red(t1) - Color.red(t2)) +
                         Math.abs(Color.green(t1) - Color.green(t2)) +
                         Math.abs(Color.blue(t1) - Color.blue(t2));
             }
         }
         for (int i = 0; i < spectrumLength; i++) {
             for (int j = 0; j < spectrumLength; j++) {
+                spectrum[i][j] /= (255.0f*3*W*H)/(spectrumLength*spectrumLength);
+                spectrum[i][j] = (float) Math.pow(spectrum[i][j], 0.1);
                 Log.wtf("FiveNinety", "analyzeImage: " + spectrum[i][j]);
             }
         }
