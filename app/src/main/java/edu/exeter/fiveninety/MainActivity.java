@@ -12,6 +12,7 @@ import android.media.AudioManager;
 import android.util.Log;
 
 import java.io.File;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,7 +29,8 @@ public class MainActivity extends AppCompatActivity {
     float[] violinBounds = {0.5f, 2.0f}; // min, max frequencies/rates
     float[] rowBounds = {0.5f, 2.0f};
     float[] colBounds = {0.5f, 2.0f};
-    float freq, oldFreq // currently only for ambientsounds
+    float freq, oldFreq; // currently only for ambientsounds
+    Random rng = new Random();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,17 +50,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
 //                oldSounds(spectrum, 0.5f, 2.0f);
+                violinStream = sp.play(violin, 1.0f, 1.0f, 100, -1, 1.0f);
                 while (true) {
+                    float random = rng.nextFloat();
                     for (int i = 0; i < height; i++) {
                         for (int j = 0; j < height; j++) {
-                            sampleDiff[i][j] = (float) Math.random();
+                            sampleDiff[i][j] = random
                         }
                     }
 //                    sounds(sampleDiff);
-//                    try {
-//                        Thread.sleep(3000);
-//                    } catch (InterruptedException w) {}
                     ambientSounds(sampleDiff, 3000);
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException w) {
+                        System.out.println("asdf");
+                    }
                 }
             }
         });
@@ -74,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
 //        }
 //        mps[1].start();
 //        mps[0].start();
-        violinStream = sp.play(violin, 1.0f, 1.0f, 100, 0, 1.0f);
         setContentView(R.layout.activity_main);
 //        sp.release();
     }
