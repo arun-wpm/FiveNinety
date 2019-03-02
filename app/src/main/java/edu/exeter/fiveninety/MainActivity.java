@@ -55,16 +55,17 @@ public class MainActivity extends AppCompatActivity {
                     float random = rng.nextFloat();
                     for (int i = 0; i < height; i++) {
                         for (int j = 0; j < height; j++) {
-                            sampleDiff[i][j] = random
+                            sampleDiff[i][j] = random;
                         }
                     }
 //                    sounds(sampleDiff);
                     ambientSounds(sampleDiff, 3000);
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException w) {
-                        System.out.println("asdf");
-                    }
+//                    try {
+//                        Thread.sleep(3000);
+//                        Log.wtf("POG", "champ");
+//                    } catch (InterruptedException w) {
+//                        Log.wtf("POG", w);
+//                    }
                 }
             }
         });
@@ -135,18 +136,22 @@ public class MainActivity extends AppCompatActivity {
         // right now just the violin layer with 3000ms smoothing applied
         int width = diffArray[0].length;
         int height = diffArray.length;
-        float avg = 0;
+        float avg = 0.0f;
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 avg += f(diffArray[i][j]) / (width * height);
             }
         }
-        float oldTime = System.currentTimeMillis();
+        long oldTime = System.currentTimeMillis();
+        Log.wtf("yes", oldTime + "");
         oldFreq = freq;
         freq = violinBounds[0] * (float) Math.pow(violinBounds[1] / violinBounds[0], avg);
-        while (true) {
-            float currTime = System.currentTimeMillis() - oldTime;
-            float currFreq = oldFreq * (float) Math.pow(freq / oldFreq, Math.max(1, currTime / interval));
+        long currTime = 0;
+        while (currTime < interval) {
+            currTime = System.currentTimeMillis() - oldTime;
+            Log.wtf("no", System.currentTimeMillis() + " " + oldTime + " " + currTime);
+            float currFreq = oldFreq * (float) Math.pow(freq / oldFreq, ((float) currTime) / ((float) interval));
+            Log.wtf("asdf", oldFreq + " " + freq + " " + currFreq + "");
             sp.setRate(violinStream, currFreq);
         }
     }
