@@ -15,13 +15,15 @@ import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
-    static final int REQUEST_IMAGE_CAPTURE = 1;
+//    static final int REQUEST_IMAGE_CAPTURE = 1;
     int spectrumLength = 25;
     float[] spectrum = new float[spectrumLength];
+    int width = 25, height = 25;
+    float[][] sampleDiff = new float[width][height];
     SoundPool sp;
     int violin, piano, violinStream;
-    Context context;
-    File dir;
+//    Context context;
+//    File dir;
 //    MediaPlayer[] mps = new MediaPlayer[spectrumLength];
     float[] violinBounds = {0.5f, 2.0f}; // min, max frequencies/rates
     float[] rowBounds = {0.5f, 2.0f};
@@ -31,19 +33,31 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 //        context = getApplicationContext();
-        sp = new SoundPool(spectrumLength, AudioManager.STREAM_MUSIC, 0);
+        sp = new SoundPool(7, AudioManager.STREAM_MUSIC, 0);
 //        dir = new File(getFilesDir() + "/Justworkgoddammit");
 //        boolean ok = dir.mkdirs();
 //        Log.wtf("TAG", ok + "" + getFilesDir() + "/Justworkgoddammit");
-        for (int i = 0; i < spectrumLength; i++) {
-            spectrum[i] = (float) Math.pow(1, Math.abs(i - (spectrumLength-1) / 2));
-        }
+
+//        for (int i = 0; i < spectrumLength; i++) {
+//            spectrum[i] = (float) Math.pow(1, Math.abs(i - (spectrumLength-1) / 2));
+//        }
         violin = sp.load(this, R.raw.violin_a2, 0);
         piano = sp.load(this, R.raw.piano_a2, 0);
         sp.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
             @Override
             public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-                sounds(spectrum);
+//                oldSounds(spectrum, 0.5f, 2.0f);
+                while (true) {
+                    for (int i = 0; i < height; i++) {
+                        for (int j = 0; j < height; j++) {
+                            sampleDiff[i][j] = (float) Math.random();
+                        }
+                    }
+                    sounds(sampleDiff);
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException w) {}
+                }
             }
         });
 //        Log.wtf("TAG", "" + soundID);
@@ -108,5 +122,9 @@ public class MainActivity extends AppCompatActivity {
         sp.setRate(violinStream, freq);
         sp.play(piano, rowAvg[maxRow], rowAvg[maxRow], 100, 0, rowFreq);
         sp.play(piano, colAvg[maxCol], colAvg[maxCol], 100, 0, colFreq);
+    }
+
+    protected void ambientSounds (float[][] diffArray) {
+
     }
 }
