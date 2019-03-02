@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     float[] violinBounds = {0.5f, 2.0f}; // min, max frequencies/rates
     float[] rowBounds = {0.5f, 2.0f};
     float[] colBounds = {0.5f, 2.0f};
+    float freq, oldFreq // currently only for ambientsounds
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,10 +54,11 @@ public class MainActivity extends AppCompatActivity {
                             sampleDiff[i][j] = (float) Math.random();
                         }
                     }
-                    sounds(sampleDiff);
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException w) {}
+//                    sounds(sampleDiff);
+//                    try {
+//                        Thread.sleep(3000);
+//                    } catch (InterruptedException w) {}
+                    ambientSounds(sampleDiff, 3000);
                 }
             }
         });
@@ -124,7 +126,23 @@ public class MainActivity extends AppCompatActivity {
         sp.play(piano, colAvg[maxCol], colAvg[maxCol], 100, 0, colFreq);
     }
 
-    protected void ambientSounds (float[][] diffArray) {
-
+    protected void ambientSounds (float[][] diffArray, long interval) {
+        // right now just the violin layer with 3000ms smoothing applied
+        int width = diffArray[0].length;
+        int height = diffArray.length;
+        float avg = 0;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                avg += f(diffArray[i][j]) / (width * height);
+            }
+        }
+        float oldTime = System.currentTimeMillis();
+        oldFreq = freq;
+        freq = violinBounds[0] * (float) Math.pow(violinBounds[1] / violinBounds[0], avg);
+        while (true) {
+            float currTime = System.currentTimeMillis() - oldTime;
+            float currFreq = oldFreq * (float) Math.pow(freq / oldFreq, Math.max(1, currTime / interval));
+            sp.setRate(violinStream, currFreq);
+        }
     }
 }
