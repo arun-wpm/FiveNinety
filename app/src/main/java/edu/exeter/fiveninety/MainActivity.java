@@ -1,32 +1,19 @@
-package com.example.pennybrant.cameratest;
+package edu.exeter.fiveninety;
 import android.Manifest;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.util.Log;
-import java.io.File;
 import android.content.Context;
 import android.content.Intent;
-import android.media.MediaPlayer;
-import android.media.SoundPool;
-import android.Manifest;
-import android.content.Intent;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.hardware.Camera;
+import android.graphics.Color;
 import android.icu.text.SimpleDateFormat;
-import android.media.Image;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.RequiresApi;
@@ -34,44 +21,27 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.media.AudioManager;
-import android.util.Log;
-import java.io.File;
 import android.util.Log;
 import android.util.SparseIntArray;
 import android.view.Surface;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
+
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.Date;
 import java.util.UUID;
 
-static final int REQUEST_IMAGE_CAPTURE = 1;
-int spectrumLength = 25;
-float[] spectrum = new float[spectrumLength];
-SoundPool sp;
-int violin;
-Context context;
-File dir;
-//    MediaPlayer[] mps = new MediaPlayer[spectrumLength];
-
-float[] Spectrum = new float[2048];
-int[] p1, p2;
-int[][] diff;
-
-public class camera extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity {
+    int spectrumLength = 25;
+    float[][] spectrum = new float[spectrumLength][spectrumLength];
+    SoundPool sp;
+    int violin;
+    int first = 0;
+    Context context;
+    
+    int[] p1, p2;
+    int[][] diff;
     private static final String TAG = "CapturePicture";
-    private static final int REQUEST_PICTURE_CAPTURE = 1;
-    private ImageView image;
-    private String picutreFilePath;
-    private String deviceIdentifier;
-    private String pictureFilePath;
-    private ImageView imageView;
-    Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
@@ -101,154 +71,17 @@ public class camera extends AppCompatActivity {
             Log.wtf("FiveNinety", "Why");
         }
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_camera);
-        image = findViewById(R.id.picture);
-        //Button captureButton = findViewById(R.id.capture);
-        getInstallationIdentifier();
+        setContentView(R.layout.activity_main);
         int id = 1;
         while(true){
-            if(id == 1){
-                id = 0;
-            }else{
-                id = 1;
-            }
-
-            try {
-                takePhotoIntent(id);
-            } catch (IOException e) {
-                Log.wtf("FiveNinety", "Why did things go wrong wtf");
-            }
-            addToGallery();
+            first++;
             analyzeImage();
             playSound();
         }
     }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private void takePhotoIntent(int id) throws IOException {
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(cameraIntent, REQUEST_PICTURE_CAPTURE);
-
-            File pictureFile = null;
-            pictureFile = getPictureFile(id);
-            if (pictureFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.zoftino.android.fileprovider",
-                        pictureFile);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(cameraIntent, REQUEST_PICTURE_CAPTURE);
-            }
-        }
-    }
-
-    private void addToGallery() {
-        Intent galleryIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(pictureFilePath);
-        Uri picUri = Uri.fromFile(f);
-        galleryIntent.setData(picUri);
-        this.sendBroadcast(galleryIntent);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    private File getPictureFile(int id) throws IOException {
-        //String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String pictureFile = "Image" + id;
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(pictureFile,  ".jpg", storageDir);
-        pictureFilePath = image.getAbsolutePath();
-        return image;
-    }
-
-
-    protected void onActivity(int requestCode, int resultCode, Intent data){
-        super.onActivityResult(requestCode, resultCode, data);
-        Bitmap bitmap = (Bitmap)data.getExtras().get("data'");
-        imageView.setImageBitmap(bitmap);
-
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent, 0);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    protected File nameimage() throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-        String pictureFile = "ZOFTINO_" + timeStamp;
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(pictureFile,  ".jpg", storageDir);
-        String pictureFilePath = image.getAbsolutePath();
-        return image;
-    }
-
-
-    private static final SparseIntArray ORIENTATION = new SparseIntArray();
-    static{
-        ORIENTATION.append(Surface.ROTATION_0, 90);
-        ORIENTATION.append(Surface.ROTATION_90, 0);
-        ORIENTATION.append(Surface.ROTATION_0, 0);
-        ORIENTATION.append(Surface.ROTATION_270, 180);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_PICTURE_CAPTURE && resultCode == RESULT_OK) {
-            File imgFile = new  File(pictureFilePath);
-            if(imgFile.exists())            {
-                image.setImageURI(Uri.fromFile(imgFile));
-            }
-        }
-        // input amplitude array, min freq, max freq
-        // make sounds loopable and short
-    }
-
-    protected synchronized String getInstallationIdentifier() {
-        if (deviceIdentifier == null) {
-            SharedPreferences sharedPrefs = this.getSharedPreferences(
-                    "DEVICE_ID", Context.MODE_PRIVATE);
-            deviceIdentifier = sharedPrefs.getString("DEVICE_ID", null);
-            if (deviceIdentifier == null) {
-                deviceIdentifier = UUID.randomUUID().toString();
-                SharedPreferences.Editor editor = sharedPrefs.edit();
-                editor.putString("DEVICE_ID", deviceIdentifier);
-                editor.commit();
-            }
-        }
-        return deviceIdentifier;
-    }
-
-    /*static final int REQUEST_IMAGE_CAPTURE = 1;
-
-    private void dispatchTakePictureIntent(int actionCode) {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(takePictureIntent, actionCode);
-    }
-
-    public static boolean isIntentAvailable(Context context, String action) {
-        final PackageManager packageManager = context.getPackageManager();
-        final Intent intent = new Intent(action);
-        List<ResolveInfo> list =
-                packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-        return list.size() > 0;
-    }
-
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        String mCurrentPhotoPath;
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
-    }*/
   
-  public void PlaySound() {
-    //        context = getApplicationContext();
+    public void playSound() {
         sp = new SoundPool(spectrumLength, AudioManager.STREAM_MUSIC, 0);
-//        dir = new File(getFilesDir() + "/Justworkgoddammit");
-//        boolean ok = dir.mkdirs();
-//        Log.wtf("TAG", ok + "" + getFilesDir() + "/Justworkgoddammit");
-        for (int i = 0; i < spectrumLength; i++) {
-            spectrum[i] = (float) Math.pow(1, Math.abs(i - (spectrumLength-1) / 2));
-        }
         violin = sp.load(this, R.raw.piano_a2, 0);
         sp.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
             @Override
@@ -256,20 +89,7 @@ public class camera extends AppCompatActivity {
                 sounds(spectrum, 0.5f, 2.0f);
             }
         });
-//        Log.wtf("TAG", "" + soundID);
-
-
-
-//        for (int i = 0; i < spectrumLength; i++) {
-//            if (i % 2 == 0)
-//                mps[i] = MediaPlayer.create(this, R.raw.violin_a2);
-//            else
-//                mps[i] = MediaPlayer.create(this, R.raw.synth_a0);
-//        }
-//        mps[1].start();
-//        mps[0].start();
         setContentView(R.layout.activity_main);
-//        sp.release();
     }
 
     protected void sounds(float[] spectrum, float min, float max) {
@@ -279,41 +99,78 @@ public class camera extends AppCompatActivity {
         }
     }
   
-   protected void analyzeImage() {
-        String root = Environment.getExternalStorageDirectory().toString() + "/ripple/";
+    protected void analyzeImage() {
+        String root = Environment.getExternalStorageDirectory().toString() + "/Android/data/edu.exeter.fiveninety/files";
         Bitmap b1, b2;
         int W, H;
         int t1, t2;
+        int h = 23, m = 0, s = 0;
         Log.wtf("FiveNinety", root);
-        b1 = BitmapFactory.decodeFile(root + "01.jpg");
-        b2 = BitmapFactory.decodeFile(root + "02.jpg");
+        String pattern;
+        File test;
+        while (true)
+        {
+            s--;
+            if (s < 0)
+            {
+                s += 60;
+                m--;
+            }
+            if (m < 0) {
+                m += 60;
+                h--;
+            }
+            pattern = "/2019-03-01_" + h + "_" + m + "_" + s + ".jpg";
+            test = new File(root + pattern);
+            if (test.exists())
+                break;
+        }
+        b1 = BitmapFactory.decodeFile(root + pattern);
+        while (true)
+        {
+            s--;
+            if (s < 0)
+            {
+                s += 60;
+                m--;
+            }
+            if (m < 0) {
+                m += 60;
+                h--;
+            }
+            pattern = "/2019-03-01_" + h + "_" + m + "_" + s + ".jpg";
+            test = new File(root + pattern);
+            if (test.exists())
+                break;
+        }
+        b2 = BitmapFactory.decodeFile(root + pattern);
         W = b1.getWidth();
         H = b1.getHeight();
-        p1 = new int[W*H];
+        if (first == 1)
+            p1 = new int[W*H];
         b1.getPixels(p1, 0, W, 0, 0, W, H);
-
-        p2 = new int[W*H];
+        if (first == 1)
+            p2 = new int[W*H];
         b2.getPixels(p2, 0, W, 0, 0, W, H);
-
-        diff = new int[W][H];
-        for (int j = 0; j < 2048; j++)
-            Spectrum[j] = 0;
-        for (int i = 0; i < W; i++)
+        if (first == 1)
+        diff = new int[W/5 + 1][H/5 + 1];
+        for (int i = 0; i < spectrumLength; i++)
+            for (int j = 0; j < spectrumLength; j++)
+                spectrum[i][j] = 0.0f;
+        for (int i = 0; i < W; i += 5)
         {
-            for (int j = 0; j < H; j++) {
+            for (int j = 0; j < H; j += 5) {
                 t1 = p1[j*W + i];
                 t2 = p2[j*W + i];
-//                diff[i][j] = t1^t2;
-                diff[i][j] = Math.abs(Color.red(t1) - Color.red(t2)) +
+                spectrum[i*spectrumLength/W][i*spectrumLength/H] += Math.abs(Color.red(t1) - Color.red(t2)) +
                         Math.abs(Color.green(t1) - Color.green(t2)) +
                         Math.abs(Color.blue(t1) - Color.blue(t2));
-                Spectrum[i*2048/W] += diff[i][j];
-//                Log.wtf("FiveNinety", "" + i + j);
             }
         }
-        for (int j = 0; j < 2048; j++) {
-            Spectrum[j] /= 255 * 3 * H * W / 2048;
-            Log.wtf("FiveNinety", "analyzeImage: " + Spectrum[j]);
+        for (int i = 0; i < spectrumLength; i++) {
+            for (int j = 0; j < spectrumLength; j++) {
+                Log.wtf("FiveNinety", "analyzeImage: " + spectrum[i][j]);
+            }
         }
-   }
+    }
 }
