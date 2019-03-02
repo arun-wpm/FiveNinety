@@ -32,13 +32,18 @@ import java.util.Date;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
+
     int spectrumLength = 25;
+    int width = 25, height = 25;
     float[][] spectrum = new float[spectrumLength][spectrumLength];
     SoundPool sp;
-    int violin;
+    int violin, piano, violinStream;
     int first = 0;
     Context context;
-    
+    float[] violinBounds = {0.5f, 2.0f}; // min, max frequencies/rates
+    float[] rowBounds = {0.5f, 2.0f};
+    float[] colBounds = {0.5f, 2.0f};
+    float freq, oldFreq; // currently only for ambientsounds
     int[] p1, p2;
     int[][] diff;
     private static final String TAG = "CapturePicture";
@@ -81,21 +86,39 @@ public class MainActivity extends AppCompatActivity {
     }
   
     public void playSound() {
-        sp = new SoundPool(spectrumLength, AudioManager.STREAM_MUSIC, 0);
+        sp = new SoundPool(7, AudioManager.STREAM_MUSIC, 0);
         violin = sp.load(this, R.raw.piano_a2, 0);
+        piano = sp.load(this, R.raw.piano_a2, 0);
         sp.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
             @Override
             public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-                sounds(spectrum, 0.5f, 2.0f);
+//                oldSounds(spectrum, 0.5f, 2.0f);
+                violinStream = sp.play(violin, 1.0f, 1.0f, 100, -1, 1.0f);
+                while (true) {
+                    float random = rng.nextFloat();
+                    for (int i = 0; i < height; i++) {
+                        for (int j = 0; j < height; j++) {
+                            sampleDiff[i][j] = random;
+                        }
+                    }
+//                    sounds(sampleDiff);
+                    ambientSounds(sampleDiff, 3000);
+//                    try {
+//                        Thread.sleep(3000);
+//                        Log.wtf("POG", "champ");
+//                    } catch (InterruptedException w) {
+//                        Log.wtf("POG", w);
+//                    }
+                }
             }
         });
         setContentView(R.layout.activity_main);
     }
 
-    protected void sounds(float[] spectrum, float min, float max) {
+    protected void oldSounds(float[] spectrum, float min, float max) { // piano with changing volumes
         for (int i = 0; i < spectrumLength; i++) {
             float freq = min * (float) Math.pow(max / min, (float) i / (spectrumLength - 1));
-            sp.play(violin, spectrum[i], spectrum[i], 100, -1, freq);
+            sp.play(piano, f(spectrum[i]), f(spectrum[i]), 100, 0, freq);
         }
     }
   
@@ -171,6 +194,68 @@ public class MainActivity extends AppCompatActivity {
             for (int j = 0; j < spectrumLength; j++) {
                 Log.wtf("FiveNinety", "analyzeImage: " + spectrum[i][j]);
             }
+        }
+    }
+
+    protected float f(float x) { // function on spectrum inputs f:[0,1]->[0,1]
+        return (float) Math.pow(x, 2);
+    }
+
+    protected void sounds(float[][] diffArray) {
+        // violin: pitch higher when disturbed more
+        // row: first piano; plays a tone corresponding to the row with the greatest disturbance
+        // col: second piano; same but with columns
+        int width = diffArray[0].length;
+        int height = diffArray.length;
+        float avg = 0;
+        float[] rowAvg = new float[height];
+        float[] colAvg = new float[width];
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                avg += f(diffArray[i][j]) / (width * height);
+                rowAvg[i] += f(diffArray[i][j]) / width;
+                colAvg[j] += f(diffArray[i][j]) / height;
+            }
+        }
+        int maxRow = 0;
+        for (int i = 0; i < height; i++) {
+            if (rowAvg[i] > rowAvg[maxRow])
+                maxRow = i;
+        }
+        int maxCol = 0;
+        for (int j = 0; j < width; j++) {
+            if (colAvg[j] > colAvg[maxCol])
+                maxCol = j;
+        }
+        float freq = violinBounds[0] * (float) Math.pow(violinBounds[1] / violinBounds[0], avg);
+        float rowFreq = rowBounds[0] * (float) Math.pow(rowBounds[1] / rowBounds[0], maxRow / (height - 1));
+        float colFreq = colBounds[0] * (float) Math.pow(colBounds[1] / colBounds[0], maxCol / (width - 1));
+        sp.setRate(violinStream, freq);
+        sp.play(piano, rowAvg[maxRow], rowAvg[maxRow], 100, 0, rowFreq);
+        sp.play(piano, colAvg[maxCol], colAvg[maxCol], 100, 0, colFreq);
+    }
+
+    protected void ambientSounds (float[][] diffArray, long interval) {
+        // right now just the violin layer with 3000ms smoothing applied
+        int width = diffArray[0].length;
+        int height = diffArray.length;
+        float avg = 0.0f;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                avg += f(diffArray[i][j]) / (width * height);
+            }
+        }
+        long oldTime = System.currentTimeMillis();
+        Log.wtf("yes", oldTime + "");
+        oldFreq = freq;
+        freq = violinBounds[0] * (float) Math.pow(violinBounds[1] / violinBounds[0], avg);
+        long currTime = 0;
+        while (currTime < interval) {
+            currTime = System.currentTimeMillis() - oldTime;
+            Log.wtf("no", System.currentTimeMillis() + " " + oldTime + " " + currTime);
+            float currFreq = oldFreq * (float) Math.pow(freq / oldFreq, ((float) currTime) / ((float) interval));
+            Log.wtf("asdf", oldFreq + " " + freq + " " + currFreq + "");
+            sp.setRate(violinStream, currFreq);
         }
     }
 }
